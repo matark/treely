@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+require 'json'
+require 'pathname'
+
+require 'treely'
+require 'treely/directory'
+
+require 'active_support/core_ext/object/blank'
+require 'active_support/core_ext/string/inflections'
+require 'mercenary'
+
+Mercenary.program(:treely) do |program|
+  program.version Treely::VERSION
+  program.syntax 'treely .'
+
+  program.action do |args, options|
+    contents = if args[0].present?
+      Treely::Directory.new(args[0]).contents
+    else
+      JSON.parse(ARGF.read, symbolize_names: true)
+    end
+
+    if contents.any? { |item| item.has_key?(:files) }
+      puts Treely.tree(contents[0..-2])
+      puts %{}
+      puts "%s %s, %s %s" % [
+        contents[-1].fetch(:directories),
+        %{directories}.pluralize(contents[-1][:directories]),
+        contents[-1].fetch(:files),
+        %{files}.pluralize(contents[-1][:files])
+      ]
+    else
+      puts Treely.tree(contents)
+      puts %{}
+    end
+  end
+end
